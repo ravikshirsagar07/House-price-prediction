@@ -1,19 +1,10 @@
 # =========================================================
-# HOUSE PRICE PREDICTION PROJECT USING STREAMLIT
-# Upload CSV / Excel File and Predict House Prices
+# HOUSE PRICE PREDICTION STREAMLIT APP
+# Supports CSV, XLSX, XLS
 # =========================================================
 
-# STEP 1:
-# Install Required Libraries
-#
-# pip install streamlit pandas scikit-learn openpyxl
-#
-# STEP 2:
-# Save this file as app.py
-#
-# STEP 3:
-# Run using:
-# streamlit run app.py
+# =========================================================
+# IMPORT LIBRARIES
 # =========================================================
 
 import streamlit as st
@@ -24,20 +15,31 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, r2_score
 
 # =========================================================
-# STREAMLIT TITLE
+# PAGE CONFIG
+# =========================================================
+
+st.set_page_config(
+    page_title="House Price Prediction",
+    layout="wide"
+)
+
+# =========================================================
+# TITLE
 # =========================================================
 
 st.title("🏠 House Price Prediction App")
 
-st.write("Upload a CSV or Excel file containing house data.")
+st.write(
+    "Upload CSV, XLSX, or XLS dataset file"
+)
 
 # =========================================================
-# FILE UPLOAD
+# FILE UPLOADER
 # =========================================================
 
 uploaded_file = st.file_uploader(
-    "Upload CSV or Excel File",
-    type=["csv", "xlsx"]
+    "Upload Dataset",
+    type=["csv", "xlsx", "xls"]
 )
 
 # =========================================================
@@ -46,128 +48,225 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
-    # Read file
-    if uploaded_file.name.endswith(".csv"):
-        df = pd.read_csv(uploaded_file)
+    try:
 
-    else:
-        df = pd.read_excel(uploaded_file)
+        # =================================================
+        # FILE NAME
+        # =================================================
 
-    # =====================================================
-    # SHOW DATA
-    # =====================================================
+        file_name = uploaded_file.name.lower()
 
-    st.subheader("Dataset Preview")
-    st.dataframe(df.head())
+        # =================================================
+        # READ CSV FILE
+        # =================================================
 
-    # =====================================================
-    # COLUMN SELECTION
-    # =====================================================
+        if file_name.endswith(".csv"):
 
-    st.subheader("Select Target Column")
+            df = pd.read_csv(uploaded_file)
 
-    target_column = st.selectbox(
-        "Choose House Price Column",
-        df.columns
-    )
+        # =================================================
+        # READ XLSX FILE
+        # =================================================
 
-    # =====================================================
-    # PREPARE DATA
-    # =====================================================
+        elif file_name.endswith(".xlsx"):
 
-    X = df.drop(columns=[target_column])
+            df = pd.read_excel(
+                uploaded_file,
+                engine="openpyxl"
+            )
 
-    y = df[target_column]
+        # =================================================
+        # READ XLS FILE
+        # =================================================
 
-    # =====================================================
-    # HANDLE CATEGORICAL DATA
-    # =====================================================
+        elif file_name.endswith(".xls"):
 
-    X = pd.get_dummies(X)
+            try:
 
-    # =====================================================
-    # TRAIN TEST SPLIT
-    # =====================================================
+                # Try real XLS file
+                df = pd.read_excel(
+                    uploaded_file,
+                    engine="xlrd"
+                )
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42
-    )
+            except:
 
-    # =====================================================
-    # TRAIN MODEL
-    # =====================================================
+                # Some fake XLS files are actually CSV
+                uploaded_file.seek(0)
 
-    model = LinearRegression()
+                df = pd.read_csv(uploaded_file)
 
-    model.fit(X_train, y_train)
+        # =================================================
+        # SUCCESS MESSAGE
+        # =================================================
 
-    # =====================================================
-    # PREDICTIONS
-    # =====================================================
+        st.success("File uploaded successfully!")
 
-    predictions = model.predict(X_test)
+        # =================================================
+        # SHOW DATASET
+        # =================================================
 
-    # =====================================================
-    # MODEL EVALUATION
-    # =====================================================
+        st.subheader("Dataset Preview")
 
-    mae = mean_absolute_error(y_test, predictions)
+        st.dataframe(df.head())
 
-    r2 = r2_score(y_test, predictions)
+        # =================================================
+        # DATASET INFO
+        # =================================================
 
-    # =====================================================
-    # SHOW RESULTS
-    # =====================================================
+        st.subheader("Dataset Information")
 
-    st.subheader("Model Performance")
+        st.write("Rows :", df.shape[0])
 
-    st.write(f"Mean Absolute Error : {mae:.2f}")
+        st.write("Columns :", df.shape[1])
 
-    st.write(f"R2 Score : {r2:.2f}")
+        st.write("Column Names :")
 
-    # =====================================================
-    # PREDICTION TABLE
-    # =====================================================
+        st.write(list(df.columns))
 
-    result_df = pd.DataFrame({
-        "Actual Price": y_test.values,
-        "Predicted Price": predictions
-    })
+        # =================================================
+        # TARGET COLUMN
+        # =================================================
 
-    st.subheader("Prediction Results")
+        st.subheader("Select Target Column")
 
-    st.dataframe(result_df.head(20))
-
-    # =====================================================
-    # MANUAL INPUT PREDICTION
-    # =====================================================
-
-    st.subheader("Predict New House Price")
-
-    input_data = {}
-
-    for column in X.columns:
-
-        input_data[column] = st.number_input(
-            f"Enter {column}",
-            value=0.0
+        target_column = st.selectbox(
+            "Choose House Price Column",
+            df.columns
         )
 
-    # Convert input to DataFrame
-    input_df = pd.DataFrame([input_data])
+        # =================================================
+        # FEATURES AND TARGET
+        # =================================================
 
-    # Prediction button
-    if st.button("Predict Price"):
+        X = df.drop(columns=[target_column])
 
-        predicted_price = model.predict(input_df)
+        y = df[target_column]
 
-        st.success(
-            f"Predicted House Price: ₹ {predicted_price[0]:,.2f}"
+        # =================================================
+        # HANDLE CATEGORICAL DATA
+        # =================================================
+
+        X = pd.get_dummies(X)
+
+        # =================================================
+        # TRAIN TEST SPLIT
+        # =================================================
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            y,
+            test_size=0.2,
+            random_state=42
         )
+
+        # =================================================
+        # MODEL TRAINING
+        # =================================================
+
+        model = LinearRegression()
+
+        model.fit(X_train, y_train)
+
+        # =================================================
+        # PREDICTIONS
+        # =================================================
+
+        predictions = model.predict(X_test)
+
+        # =================================================
+        # MODEL PERFORMANCE
+        # =================================================
+
+        mae = mean_absolute_error(
+            y_test,
+            predictions
+        )
+
+        r2 = r2_score(
+            y_test,
+            predictions
+        )
+
+        # =================================================
+        # SHOW PERFORMANCE
+        # =================================================
+
+        st.subheader("Model Performance")
+
+        st.write(
+            f"Mean Absolute Error : {mae:.2f}"
+        )
+
+        st.write(
+            f"R2 Score : {r2:.2f}"
+        )
+
+        # =================================================
+        # RESULTS TABLE
+        # =================================================
+
+        results_df = pd.DataFrame({
+
+            "Actual Price": y_test.values,
+
+            "Predicted Price": predictions
+
+        })
+
+        st.subheader("Prediction Results")
+
+        st.dataframe(results_df.head(20))
+
+        # =================================================
+        # MANUAL PREDICTION
+        # =================================================
+
+        st.subheader("Predict New House Price")
+
+        input_data = {}
+
+        for column in X.columns:
+
+            input_data[column] = st.number_input(
+                f"Enter {column}",
+                value=0.0
+            )
+
+        input_df = pd.DataFrame([input_data])
+
+        # =================================================
+        # PREDICT BUTTON
+        # =================================================
+
+        if st.button("Predict House Price"):
+
+            predicted_price = model.predict(input_df)
+
+            st.success(
+                f"Predicted House Price : ₹ {predicted_price[0]:,.2f}"
+            )
+
+    # =====================================================
+    # ERROR HANDLING
+    # =====================================================
+
+    except Exception as e:
+
+        st.error("Error while processing file")
+
+        st.write(e)
 
 # =========================================================
-# END OF PROJECT
+# NO FILE MESSAGE
+# =========================================================
+
+else:
+
+    st.info(
+        "Please upload CSV, XLSX, or XLS file"
+    )
+
+# =========================================================
+# END
 # =========================================================
